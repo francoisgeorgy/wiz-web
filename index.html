@@ -2,305 +2,182 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>WiZ Web</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Color Picker</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@jaames/iro"></script> <!-- Lightweight Color Picker -->
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            cursor: crosshair;
-        }
-
-        #color-spectrum {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-
-        #gradient-canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-
-        #color-indicator {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border: 2px solid white;
-            border-radius: 50%;
-            box-shadow: 0 0 5px black;
-            pointer-events: none;
-            transform: translate(-50%, -50%);
-        }
-
-        #selected-color {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            padding: 10px;
-            background-color: transparent;
-            border: 1px solid black;
-            border-radius: 5px;
-            color: white;
+        body {
             font-family: Arial, sans-serif;
-            font-size: 14px;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
-            z-index: 10;
+            margin: 20px;
+            background-color: #f9f9f9;
         }
-
-        #controls {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+        .preset {
             display: flex;
+            align-items: center;
             gap: 10px;
-            z-index: 10;
+            margin-bottom: 10px;
         }
-
-        button {
-            padding: 10px 20px;
-            font-size: 14px;
-            font-family: Arial, sans-serif;
+        .preset-name {
             cursor: pointer;
-            border: 1px solid white;
-            border-radius: 5px;
-            background-color: transparent;
-            color: white;
-            box-shadow: none;
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: underline;
+            color: blue;
         }
-
-        button:hover {
-            background-color: rgba(255, 255, 255, 0.2); /* Semi-opaque background */
-            box-shadow: 0 0 5px rgba(255, 255, 255, 0.5); /* Subtle glow on hover */
+        .preset-color {
+            width: 40px;
+            height: 20px;
+            border: 1px solid #000;
+            cursor: pointer;
         }
-
-        #brightness {
-            width: 200px;
+        button {
+            padding: 5px 10px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <div id="color-spectrum">
-        <canvas id="gradient-canvas"></canvas>
-        <div id="color-indicator"></div>
-    </div>
-    <div id="selected-color"><span id="color-display"></span></div>
-    <div id="controls">
-        <button id="power-button">⏻</button>
-    <button id="preset1-button">Preset 1<br><span class="preset-name" id="preset1-name"></span></button>
-    <button id="preset2-button">Preset 2<br><span class="preset-name" id="preset2-name"></span></button>
-    <button id="preset3-button">Preset 3<br><span class="preset-name" id="preset3-name"></span></button>
-        <input id="brightness" type="range" min="0" max="100" step="1" />
-    </div>
+<div id="root"></div>
 <script>
-    const spectrum = document.getElementById('color-spectrum');
-    const canvas = document.getElementById('gradient-canvas');
-    const ctx = canvas.getContext('2d');
-    const indicator = document.getElementById('color-indicator');
-    const colorDisplay = document.getElementById('color-display');
+    const { useState, useEffect, useRef } = React;
 
-    const powerButton = document.getElementById('power-button');
-    const presetButtons = [
-        document.getElementById('preset1-button'),
-        document.getElementById('preset2-button'),
-        document.getElementById('preset3-button')
-    ];
-    const presetNames = [
-        document.getElementById('preset1-name'),
-        document.getElementById('preset2-name'),
-        document.getElementById('preset3-name')
-    ];
+    function App() {
+        const [color, setColor] = useState("#ffffff");
+        const [presets, setPresets] = useState([]);
+        const pickerRef = useRef(null);
 
-    let selectedColor = "rgb(255, 255, 255)"; // Default color
+        const localStorageKey = "colorPickerPresets";
 
-    // Helper function to load presets from local storage
-    function loadPresets() {
-        for (let i = 0; i < 3; i++) {
-            const presetData = localStorage.getItem(`preset${i + 1}`);
-            if (presetData) {
-                const { name } = JSON.parse(presetData);
-                presetNames[i].textContent = name || '';
+        useEffect(() => {
+            const savedPresets = JSON.parse(localStorage.getItem(localStorageKey)) || [];
+            setPresets(savedPresets);
+        }, []);
+
+        useEffect(() => {
+            localStorage.setItem(localStorageKey, JSON.stringify(presets));
+        }, [presets]);
+
+        useEffect(() => {
+            const colorPicker = new iro.ColorPicker(pickerRef.current, {
+                width: 200,
+                color: color,
+            });
+
+            colorPicker.on("color:change", (newColor) => {
+                setColor(newColor.hexString);
+            });
+        }, []);
+
+        const handleAddPreset = () => {
+            setPresets([...presets, { name: "New Preset", color: "#ffffff" }]);
+        };
+
+        const handleSavePreset = (index) => {
+            const updatedPresets = [...presets];
+            updatedPresets[index].color = color;
+            setPresets(updatedPresets);
+        };
+
+        const handleEditName = (index) => {
+            const newName = prompt("Enter new name:", presets[index].name);
+            if (newName) {
+                const updatedPresets = [...presets];
+                updatedPresets[index].name = newName;
+                setPresets(updatedPresets);
             }
-        }
-    }
+        };
 
-    // Helper function to save a preset
-    function savePreset(index, color, name) {
-        const presetData = { color, name };
-        localStorage.setItem(`preset${index + 1}`, JSON.stringify(presetData));
-        presetNames[index].textContent = name || '';
-    }
+        const handleDeletePreset = (index) => {
+            const updatedPresets = presets.filter((_, i) => i !== index);
+            setPresets(updatedPresets);
+        };
 
-    // Event listener for preset buttons
-    presetButtons.forEach((button, index) => {
-        button.addEventListener('click', () => {
-            const presetData = localStorage.getItem(`preset${index + 1}`);
-            if (presetData) {
-                const { color } = JSON.parse(presetData);
-                console.log(`Preset ${index + 1}: ${color}`);
-            } else {
-                console.log(`Preset ${index + 1} not set.`);
+        const selectPresetColor = (rgb) => {
+            console.log("selectPresetColor", rgb)
+            setColor(rgb); // Update the current selected color
+            const colorPicker = pickerRef.current._iroPicker;
+            if (colorPicker) {
+                colorPicker.color.hexString = rgb; // Update color picker to match preset
             }
-        });
-    });
+        };
 
-    // Detect Shift + Number key for preset saving
-    window.addEventListener('keydown', (event) => {
-        if (event.shiftKey && event.key >= '1' && event.key <= '3') {
-            const index = parseInt(event.key) - 1;
-            const name = prompt(`Enter a name for Preset ${index + 1}:`);
-            if (name) {
-                savePreset(index, selectedColor, name);
-            }
-        }
-    });
-
-    // Function to update the selected color
-    function updateSelectedColor(color) {
-        selectedColor = color;
-        colorDisplay.textContent = color;
-        indicator.style.backgroundColor = color;
+        return React.createElement("div", { style: { fontFamily: "Arial, sans-serif", padding: "20px" } }, [
+            React.createElement("h1", { key: "header" }, "React Color Picker with Presets"),
+            React.createElement("div", { key: "picker", style: { marginBottom: "20px" } }, [
+                React.createElement("div", { key: "colorPicker", ref: pickerRef }),
+                React.createElement(
+                    "p",
+                    { key: "selectedColor" },
+                    `Selected Color: `,
+                    React.createElement("span", { style: { fontWeight: "bold" } }, color)
+                ),
+            ]),
+            React.createElement("div", { key: "presets" }, [
+                React.createElement("h2", { key: "presetsHeader" }, "Presets"),
+                ...presets.map((preset, index) =>
+                    React.createElement(
+                        "div",
+                        {
+                            key: `preset-${index}`,
+                            style: {
+                                display: "flex",
+                                alignItems: "center",
+                                marginBottom: "10px",
+                            },
+                        },
+                        [
+                            React.createElement(
+                                "span",
+                                {
+                                    key: `presetName-${index}`,
+                                    style: {
+                                        cursor: "pointer",
+                                        textDecoration: "underline",
+                                        color: "blue",
+                                        marginRight: "10px",
+                                    },
+                                    onClick: () => handleEditName(index),
+                                },
+                                preset.name
+                            ),
+                            React.createElement("div", {
+                                key: `presetColor-${index}`,
+                                style: {
+                                    width: "40px",
+                                    height: "20px",
+                                    backgroundColor: preset.color,
+                                    border: "1px solid #000",
+                                    marginRight: "10px",
+                                },
+                                onClick: () => selectPresetColor(preset.color),
+                            }),
+                            React.createElement(
+                                "button",
+                                { key: `presetSave-${index}`, onClick: () => handleSavePreset(index) },
+                                "Save Color"
+                            ),
+                            React.createElement(
+                                "button",
+                                {
+                                    key: `presetDelete-${index}`,
+                                    style: { color: "red" },
+                                    onClick: () => handleDeletePreset(index),
+                                },
+                                "Delete"
+                            ),
+                        ]
+                    )
+                ),
+                React.createElement(
+                    "button",
+                    { key: "addPreset", style: { marginTop: "10px" }, onClick: handleAddPreset },
+                    "Add Preset"
+                ),
+            ]),
+        ]);
     }
 
-    // Initialize canvas and load presets
-    initializeCanvas();
-    loadPresets();
-
-    // Event listener to handle mouse movement
-    spectrum.addEventListener('mousemove', (event) => {
-        const { offsetX, offsetY } = event;
-
-        // Move the color indicator
-        indicator.style.left = `${offsetX}px`;
-        indicator.style.top = `${offsetY}px`;
-
-        // Get the pixel color under the cursor
-        const imageData = ctx.getImageData(offsetX, offsetY, 1, 1);
-        const [r, g, b] = imageData.data;
-        const color = `rgb(${r}, ${g}, ${b})`;
-
-        // Update the selected color
-        updateSelectedColor(color);
-    });
-
-    // Redraw canvas on window resize
-    window.addEventListener('resize', () => {
-        initializeCanvas();
-    });
-
-    // Initialize canvas to cover the full viewport
-    function initializeCanvas() {
-        canvas.width = spectrum.offsetWidth;
-        canvas.height = spectrum.offsetHeight;
-
-        const width = canvas.width;
-        const height = canvas.height;
-
-        // Create an imageData object to directly manipulate pixels
-        const imageData = ctx.createImageData(width, height);
-
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const index = (y * width + x) * 4;
-
-                // Horizontal gradient: hue
-                const hue = (x / width) * 360;
-                const [r1, g1, b1] = hslToRgb(hue, 1, 0.5);
-
-                // Vertical gradient: brightness adjustment
-                const brightness = 1 - y / height;
-
-                // Apply brightness to the hue
-                imageData.data[index] = r1 * brightness; // Red
-                imageData.data[index + 1] = g1 * brightness; // Green
-                imageData.data[index + 2] = b1 * brightness; // Blue
-                imageData.data[index + 3] = 255; // Alpha
-            }
-        }
-
-        // Draw the processed image data onto the canvas
-        ctx.putImageData(imageData, 0, 0);
-    }
-
-    // Convert HSL to RGB
-    function hslToRgb(h, s, l) {
-        const c = (1 - Math.abs(2 * l - 1)) * s;
-        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-        const m = l - c / 2;
-        let r = 0, g = 0, b = 0;
-
-        if (h >= 0 && h < 60) [r, g, b] = [c, x, 0];
-        else if (h >= 60 && h < 120) [r, g, b] = [x, c, 0];
-        else if (h >= 120 && h < 180) [r, g, b] = [0, c, x];
-        else if (h >= 180 && h < 240) [r, g, b] = [0, x, c];
-        else if (h >= 240 && h < 300) [r, g, b] = [x, 0, c];
-        else if (h >= 300 && h < 360) [r, g, b] = [c, 0, x];
-
-        return [
-            Math.round((r + m) * 255),
-            Math.round((g + m) * 255),
-            Math.round((b + m) * 255),
-        ];
-    }
-/*
-    // Initialize the canvas on page load
-    initializeCanvas();
-
-    // Event listener to handle mouse movement
-    spectrum.addEventListener('mousemove', (event) => {
-        const { offsetX, offsetY } = event;
-
-        // Move the color indicator
-        indicator.style.left = `${offsetX}px`;
-        indicator.style.top = `${offsetY}px`;
-
-        // Get the pixel color under the cursor
-        const imageData = ctx.getImageData(offsetX, offsetY, 1, 1);
-        const [r, g, b] = imageData.data;
-        const color = `RGB(${r}, ${g}, ${b})`;
-
-        // Update the color display
-        updateSelectedColor(color);
-    });
-
-    // Button event handlers
-    preset1Button.addEventListener('click', () => {
-        updateSelectedColor('rgb(255, 255, 255)');
-    });
-
-    preset2Button.addEventListener('click', () => {
-        updateSelectedColor('rgb(0, 0, 0)');
-    });
-
-    preset3Button.addEventListener('click', () => {
-        const randomX = Math.floor(Math.random() * canvas.width);
-        const randomY = Math.floor(Math.random() * canvas.height);
-        const imageData = ctx.getImageData(randomX, randomY, 1, 1);
-        const [r, g, b] = imageData.data;
-        const color = `rgb(${r}, ${g}, ${b})`;
-        updateSelectedColor(color);
-    });
-
-    powerButton.addEventListener('click', () => {
-        console.log("TODO: power button handling");
-    });
-
-    // Function to update the selected color
-    function updateSelectedColor(color) {
-        colorDisplay.textContent = color;
-        indicator.style.backgroundColor = color;
-    }
-
-    // Redraw canvas on window resize
-    window.addEventListener('resize', () => {
-        initializeCanvas();
-    });
- */
+    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
 </script>
 </body>
 </html>
