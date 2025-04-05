@@ -2,7 +2,8 @@ Simple utility to control a Wiz build from the command line.
 
 Install with : 
 
-    python3 setup.py install
+    $ cd ~/.local/bin/
+    $ ln -s ~/dev/projects/wiz-web/wiz.py wiz
 
 Mac OS toolbar : 
 

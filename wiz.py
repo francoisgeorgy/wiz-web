@@ -1,3 +1,5 @@
+#!/opt/homebrew/bin/python3
+
 import socket
 import json
 import sys
